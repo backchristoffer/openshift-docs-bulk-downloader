@@ -36,3 +36,13 @@ pipenv run python app.py --version 4.18 --download
 
 ### Example 4: Target Specific Version
 pipenv run python app.py --version 4.17 --scrape --verify --download
+
+# OpenShift Downloader CLI Arguments
+
+| Argument | Description |
+| :--- | :--- |
+| `--version` | Specify the OpenShift version (e.g., 4.18, 4.20). |
+| `--scrape` | Scrapes the landing page and creates a `toc_VERSION.json` cache. |
+| `--verify` | Performs a HEAD request for every PDF to ensure it exists on the server. |
+| `--download` | Downloads the PDFs from the cache into versioned subdirectories. |
+| `--cleanup` | Deletes the JSON cache file upon successful completion. |
