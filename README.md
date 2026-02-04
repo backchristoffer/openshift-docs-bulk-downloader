@@ -1,6 +1,6 @@
 # openshift-docs--bulk-downloader
-script to download all docs from selected openshift 4.y version in PDF .
-useful if you intend to load ocp docs into your LLM in bulk
+Script to download all docs from selected openshift 4.y version in PDF. \
+Useful if you intend to load ocp docs into your LLM in bulk.
 
 # Container Build Command
 
