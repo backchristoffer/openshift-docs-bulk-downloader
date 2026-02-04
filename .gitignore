@@ -4,6 +4,7 @@ downloads/
 temp/
 *.log
 openshift_v4*
+*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
