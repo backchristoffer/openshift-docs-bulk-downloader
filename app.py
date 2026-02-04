@@ -1,10 +1,34 @@
 import os
 import re
 import json
+import signal
+import sys
 import argparse
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
+
+# Global tracking for cleanup on signal
+current_file_path = None
+
+def signal_handler(sig, frame):
+    """Handles SIGINT and SIGTERM to prevent file corruption."""
+    global current_file_path
+    print(f"\n[!] Signal {sig} received. Graceful shutdown initiated...")
+    
+    if current_file_path and os.path.exists(current_file_path):
+        print(f"[!] Removing incomplete file: {current_file_path}")
+        try:
+            os.remove(current_file_path)
+        except Exception as e:
+            print(f"[!] Failed to remove {current_file_path}: {e}")
+    
+    print("[*] Exit complete.")
+    sys.exit(0)
+
+# Register signals
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 def sanitize_name(name):
     return re.sub(r'[\\/*?:"<>|]', "", name).strip()
@@ -33,10 +57,12 @@ def scrape_version(version, cache_file, verify=False):
     except Exception as e:
         print(f"[!] Error: Could not load version {version}. (Reason: {e})")
         return False
+    
     soup = BeautifulSoup(response.text, "html.parser")
     toc_data = {}
     pattern = f"/en/documentation/openshift_container_platform/{version}/html/"
     links = [a for a in soup.find_all("a", href=True) if pattern in a['href']]
+    
     for link in tqdm(links, desc=f"Mapping v{version}", unit="link"):
         href = link['href']
         category = "General"
@@ -54,6 +80,7 @@ def scrape_version(version, cache_file, verify=False):
                 continue
         if pdf_url not in toc_data[category]:
             toc_data[category].append(pdf_url)
+            
     toc_data = {k: v for k, v in toc_data.items() if v}
     with open(cache_file, "w") as f:
         json.dump(toc_data, f, indent=4)
@@ -61,22 +88,29 @@ def scrape_version(version, cache_file, verify=False):
     return True
 
 def download_version(cache_file, output_dir):
+    global current_file_path
     if not os.path.exists(cache_file):
         print(f"[!] No cache found at {cache_file}. Run with --scrape first.")
         return False
+    
     with open(cache_file, "r") as f:
         toc_data = json.load(f)
+    
     print(f"[*] Starting download into: {output_dir}")
     for category, urls in toc_data.items():
         cat_dir = os.path.join(output_dir, category)
         os.makedirs(cat_dir, exist_ok=True)
+        
         for url in urls:
             filename = url.split("/")[-1]
-            path = os.path.join(cat_dir, filename)
+            path = os.path.join(cat_dir, filename)    
             if os.path.exists(path):
                 continue
             try:
+                # Track path for signal cleanup
+                current_file_path = path
                 r = requests.get(url, stream=True, timeout=30)
+                
                 if r.status_code == 200:
                     total = int(r.headers.get('content-length', 0))
                     with open(path, 'wb') as f, tqdm(
@@ -84,9 +118,16 @@ def download_version(cache_file, output_dir):
                         unit='iB', unit_scale=True, leave=False
                     ) as bar:
                         for chunk in r.iter_content(chunk_size=8192):
-                            f.write(chunk)
-                            bar.update(len(chunk))
-            except:
+                            if chunk:
+                                f.write(chunk)
+                                bar.update(len(chunk))
+                # Successful download, reset tracker
+                current_file_path = None
+            except Exception:
+                # Cleanup if error occurred during stream
+                if os.path.exists(path):
+                    os.remove(path)
+                current_file_path = None
                 continue
     return True
 
@@ -112,5 +153,6 @@ if __name__ == "__main__":
         if os.path.exists(c_file):
             os.remove(c_file)
             print(f"[+] Cleaned up cache file: {c_file}")
+    
     if not any([args.scrape, args.download, args.cleanup]):
         parser.print_help()
