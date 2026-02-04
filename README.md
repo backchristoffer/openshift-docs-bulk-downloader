@@ -1,3 +1,5 @@
+# This is for DEMO PURPOSES - NOT OFFICIALLY SUPPORTED - QUICK SAMPLE OF HOW TO DOWNLOAD DOCS IN BULK! - USE CAREFULLY AND ALWAYS REVIEW BEFORE RUNNING IT ON YOUR LOCAL MACHINE!
+
 # openshift-docs--bulk-downloader
 Script to download all docs from selected openshift 4.y version in PDF. \
 Useful if you intend to load ocp docs into your LLM in bulk.
