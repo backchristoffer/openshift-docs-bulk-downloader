@@ -1,3 +1,10 @@
+# OTHER
+*.lock
+downloads/
+temp/
+*.log
+openshift_v4*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
